@@ -153,34 +153,36 @@
     }
 
     async function corregirConIA() {
-      const campo = document.getElementById("campoDictado");
-      const texto = campo.value;
-      if (!texto.trim()) return alert("El campo está vacío.");
-      textoOriginal = texto;
+  const campo = document.getElementById("campoDictado");
+  const texto = campo.value;
+  if (!texto.trim()) return alert("El campo está vacío.");
+  textoOriginal = texto;
 
-      const mensajeCarga = document.getElementById("mensajeCarga");
-      mensajeCarga.style.display = "block";
+  const mensajeCarga = document.getElementById("mensajeCarga");
+  mensajeCarga.style.display = "block";
 
-      const API_KEY = "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"; // reemplaza por tu API
-      const modelo = "deepseek/deepseek-chat:free";
+  try {
+    const response = await fetch("/corregir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto })
+    });
 
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + API_KEY,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: modelo,
-            messages: [
-              {
-                role: "user",
-                content: "Corrige ortografía, gramática y redacción del siguiente texto. Devuelve solo el texto corregido, sin comentarios:\n\n" + texto
-              }
-            ]
-          })
-        });
+    const data = await response.json();
+
+    if (data.resultado) {
+      campo.value = data.resultado;
+      textoFinal = data.resultado;
+    } else {
+      alert("❌ No se recibió respuesta de la IA.");
+    }
+  } catch (error) {
+    alert("❌ Error al conectar con el servidor.");
+    console.error(error);
+  } finally {
+    mensajeCarga.style.display = "none";
+  }
+}
 
         const data = await response.json();
         const corregido = data.choices?.[0]?.message?.content;
