@@ -153,48 +153,31 @@
     }
 
     async function corregirConIA() {
-  const campo = document.getElementById("campoDictado");
-  const texto = campo.value;
-  if (!texto.trim()) return alert("El campo está vacío.");
-  textoOriginal = texto;
+      const campo = document.getElementById("campoDictado");
+      const texto = campo.value;
+      if (!texto.trim()) return alert("El campo está vacío.");
+      textoOriginal = texto;
 
-  const mensajeCarga = document.getElementById("mensajeCarga");
-  mensajeCarga.style.display = "block";
+      const mensajeCarga = document.getElementById("mensajeCarga");
+      mensajeCarga.style.display = "block";
 
-  try {
-    const response = await fetch("/corregir", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto })
-    });
-
-    const data = await response.json();
-
-    if (data.resultado) {
-      campo.value = data.resultado;
-      textoFinal = data.resultado;
-    } else {
-      alert("❌ No se recibió respuesta de la IA.");
-    }
-  } catch (error) {
-    alert("❌ Error al conectar con el servidor.");
-    console.error(error);
-  } finally {
-    mensajeCarga.style.display = "none";
-  }
-}
+      try {
+        const response = await fetch("/corregir", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texto })
+        });
 
         const data = await response.json();
-        const corregido = data.choices?.[0]?.message?.content;
 
-        if (corregido) {
-          campo.value = corregido;
-          textoFinal = corregido;
+        if (data.resultado) {
+          campo.value = data.resultado;
+          textoFinal = data.resultado;
         } else {
-          alert("No se recibió respuesta de la IA.");
+          alert("❌ No se recibió respuesta de la IA.");
         }
       } catch (error) {
-        alert("❌ Error al conectar con la IA.");
+        alert("❌ Error al conectar con el servidor.");
         console.error(error);
       } finally {
         mensajeCarga.style.display = "none";
