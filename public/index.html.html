@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dictado con IA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      text-align: center;
+      background: #f4f4f4;
+    }
+    textarea {
+      width: 90%;
+      height: 150px;
+      font-size: 16px;
+      padding: 10px;
+      resize: none;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #estado {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🗣 Dictado por Voz + Corrección IA</h2>
+  <textarea id="campoDictado" placeholder="Habla aquí..."></textarea><br>
+
+  <button onclick="iniciarDictado('campoDictado')">🎤 Iniciar Dictado</button>
+  <button onclick="detenerDictado()">🛑 Detener</button>
+  <button onclick="corregirTexto()">🧠 Corregir Ortografía</button>
+  <button onclick="corregirConIA()">🤖 Corregir con IA</button>
+  <button onclick="deshacerCorreccion()">💾 Deshacer Corrección</button>
+
+  <p id="mensajeCarga" style="display: none; color: orange; font-weight: bold;">⏳ Corrigiendo con IA... Por favor espera.</p>
+  <div id="estado">Estado: <span id="estadoTexto">Inactivo</span></div>
+
+  <script>
+    let recognition;
+    let campoActivo = null;
+    let textoFinal = '';
+    let textoOriginal = '';
+
+    function iniciarDictado(idCampo) {
+      campoActivo = document.getElementById(idCampo);
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Tu navegador no soporta reconocimiento de voz.");
+        return;
+      }
+      if (recognition) recognition.stop();
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = "es-ES";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        document.getElementById('estadoTexto').textContent = 'Escuchando...';
+      };
+
+      recognition.onresult = function(event) {
+        let textoIntermedio = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          let transcripcion = event.results[i][0].transcript;
+          transcripcion = transcripcion
+            .replace(/siguiente línea/gi, '\n')
+            .replace(/nueva línea/gi, '\n')
+            .replace(/coma/gi, ',')
+            .replace(/punto/gi, '.')
+            .replace(/proporción/gi, ':')
+            .replace(/numeral/gi, '#')
+            .replace(/slash/gi, '/');
+
+          if (event.results[i].isFinal) {
+            textoFinal += transcripcion + ' ';
+          } else {
+            textoIntermedio += transcripcion;
+          }
+        }
+        campoActivo.value = textoFinal + textoIntermedio;
+        autoAjustarAltura(campoActivo);
+      };
+
+      recognition.onerror = function(event) {
+        console.error("Error en reconocimiento: ", event.error);
+        document.getElementById('estadoTexto').textContent = 'Error';
+      };
+
+      recognition.onend = function() {
+        document.getElementById('estadoTexto').textContent = 'Inactivo';
+      };
+
+      recognition.start();
+    }
+
+    function detenerDictado() {
+      if (recognition) {
+        recognition.stop();
+        recognition = null;
+        campoActivo = null;
+        document.getElementById('estadoTexto').textContent = 'Detenido';
+      }
+    }
+
+    function autoAjustarAltura(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+
+    async function corregirTexto() {
+      const campo = document.getElementById("campoDictado");
+      const texto = campo.value;
+      textoOriginal = texto;
+
+      const response = await fetch("https://api.languagetool.org/v2/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ text: texto, language: "es" })
+      });
+
+      const data = await response.json();
+      let textoCorregido = texto;
+      for (let i = data.matches.length - 1; i >= 0; i--) {
+        const match = data.matches[i];
+        if (match.replacements && match.replacements.length > 0) {
+          const replacement = match.replacements[0].value;
+          textoCorregido = textoCorregido.slice(0, match.offset) +
+                           replacement +
+                           textoCorregido.slice(match.offset + match.length);
+        }
+      }
+
+      campo.value = textoCorregido;
+      textoFinal = textoCorregido;
+    }
+
+    function deshacerCorreccion() {
+      const campo = document.getElementById("campoDictado");
+      if (textoOriginal) {
+        campo.value = textoOriginal;
+        textoFinal = textoOriginal;
+        textoOriginal = '';
+      } else {
+        alert("No hay corrección previa para deshacer.");
+      }
+    }
+
+    async function corregirConIA() {
+      const campo = document.getElementById("campoDictado");
+      const texto = campo.value;
+      if (!texto.trim()) return alert("El campo está vacío.");
+      textoOriginal = texto;
+
+      const mensajeCarga = document.getElementById("mensajeCarga");
+      mensajeCarga.style.display = "block";
+
+      const API_KEY = "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"; // reemplaza por tu API
+      const modelo = "deepseek/deepseek-chat:free";
+
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + API_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: modelo,
+            messages: [
+              {
+                role: "user",
+                content: "Corrige ortografía, gramática y redacción del siguiente texto. Devuelve solo el texto corregido, sin comentarios:\n\n" + texto
+              }
+            ]
+          })
+        });
+
+        const data = await response.json();
+        const corregido = data.choices?.[0]?.message?.content;
+
+        if (corregido) {
+          campo.value = corregido;
+          textoFinal = corregido;
+        } else {
+          alert("No se recibió respuesta de la IA.");
+        }
+      } catch (error) {
+        alert("❌ Error al conectar con la IA.");
+        console.error(error);
+      } finally {
+        mensajeCarga.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
