@@ -1,7 +1,6 @@
 {
   "name": "miapp",
   "version": "1.0.0",
-  "description": "Dictado con IA",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +8,6 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "node-fetch": "2.6.7"
+    "node-fetch": "^2.6.7"
   }
 }
