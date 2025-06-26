@@ -6,12 +6,9 @@
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "2.6.7"
   }
 }
